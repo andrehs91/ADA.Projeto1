@@ -8,7 +8,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<IProducerService, ProducerService>();
+builder.Services.AddScoped<ITransacaoService, TransacaoService>();
 
 var app = builder.Build();
 

@@ -9,10 +9,22 @@ using Azure.Storage.Sas;
 
 namespace ADA.Producer.Services;
 
-public class ProducerService(ILogger<ProducerService> logger, IConfiguration configuration) : IProducerService
+public class TransacaoService : ITransacaoService
 {
-    private readonly ILogger<ProducerService> _logger = logger;
-    private readonly IConfiguration _configuration = configuration;
+    private readonly ILogger<TransacaoService> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IDatabase _db;
+
+    public TransacaoService(ILogger<TransacaoService> logger, IConfiguration configuration)
+    {
+        _logger = logger;
+        _configuration = configuration;
+
+        string connectionString = _configuration["ConnectionStrings:Redis"]
+            ?? throw new Exception("Redis não foi configurado.");
+        ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(connectionString);
+        _db = redis.GetDatabase();
+    }
 
     public void EnviarTransacao(TransacaoDTO transacaoDTO)
     {
@@ -33,34 +45,17 @@ public class ProducerService(ILogger<ProducerService> logger, IConfiguration con
                              body: JsonSerializer.SerializeToUtf8Bytes(transacaoDTO));
     }
 
-    public async Task<string> ConsultarRelatorio(string contaOrigem)
+    public async Task<string> ConsultarRelatorioAsync(string contaOrigem)
     {
         string chaveTransacaoInvalida = "invalida." + contaOrigem;
-
-        string connectionString = _configuration["ConnectionStrings:Redis"]
-            ?? throw new Exception("Redis não foi configurado.");
-        ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(connectionString);
-        IDatabase db = redis.GetDatabase();
-        var transacoesInvalidas = await db.ListRangeAsync(chaveTransacaoInvalida);
+        var transacoesInvalidas = await _db.ListRangeAsync(chaveTransacaoInvalida);
 
         if (transacoesInvalidas.Length == 0)
-        {
             return "Conta não possui registro de transações fraudulentas ou todos os registros já foram enviados para o relatório.";
-        }
 
-        //var memoryStream = new MemoryStream();
-        //var streamWriter = new StreamWriter(memoryStream);
-        //foreach (var transacao in transacoesInvalidas)
-        //{
-        //    streamWriter.WriteLine(transacao);
-        //}
-        //memoryStream.Seek(0, SeekOrigin.Begin);
-
-        string content = "";
-        foreach (var transacao in transacoesInvalidas)
-        {
-            content += transacao;
-        }
+        string content = "{";
+        foreach (var transacao in transacoesInvalidas) content += transacao + ",";
+        content = content.Remove(content.Length - 1, 1) + "}";
         var memoryStream = new MemoryStream();
         var streamWriter = new StreamWriter(memoryStream);
         streamWriter.Write(content);
@@ -82,16 +77,26 @@ public class ProducerService(ILogger<ProducerService> logger, IConfiguration con
                 BlobContainerName = blobClient.GetParentBlobContainerClient().Name,
                 BlobName = blobClient.Name,
                 Resource = "b",
-                ExpiresOn = DateTimeOffset.UtcNow.AddHours(2)
+                ExpiresOn = DateTimeOffset.UtcNow.AddDays(1)
             };
             sasBuilder.SetPermissions(BlobContainerSasPermissions.Read);
             Uri sasURI = blobClient.GenerateSasUri(sasBuilder);
-            return sasURI.AbsoluteUri;
+            string link = sasURI.AbsoluteUri;
+            _db.SetAdd(contaOrigem, link);
+            return link;
         }
         else
         {
             return "O relatório foi gerado, mas não foi possível gerar um link para download.";
         }
+    }
+
+    public async Task<List<string>?> ListarRelatoriosAsync(string contaOrigem)
+    {
+        var cache = await _db.SetMembersAsync(contaOrigem);
+        if (cache.Length == 0) return null;
+        List<string> links = cache.Select(c => c.ToString()).ToList();
+        return links;
     }
 
     private async Task<BlobContainerClient> BlobContainerAsync(string containerName)
