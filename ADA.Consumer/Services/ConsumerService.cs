@@ -4,22 +4,27 @@ using System.Text.Json;
 
 namespace ADA.Consumer.Services;
 
-public class ConsumerService(ILogger<ConsumerService> logger) : IConsumerService
+public class ConsumerService(
+    ILogger<ConsumerService> logger,
+    IConfiguration configuration
+) : IConsumerService
 {
     private readonly ILogger<ConsumerService> _logger = logger;
+    private readonly IConfiguration _configuration = configuration;
 
     public async Task<Transacao> ProcessarTransacaoAsync(Transacao transacao)
     {
         string chaveTransacaoValida = "valida." + transacao.ContaOrigem;
         string chaveTransacaoInvalida = "invalida." + transacao.ContaOrigem;
 
-        ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
+        string connectionString = _configuration["ConnectionStrings:Redis"]
+            ?? throw new Exception("Redis não foi configurado.");
+        ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(connectionString);
         IDatabase db = redis.GetDatabase();
         var cacheTransacao = await db.ListGetByIndexAsync(chaveTransacaoValida, -1);
 
         if (cacheTransacao.HasValue && !cacheTransacao.IsNullOrEmpty)
         {
-            Console.WriteLine(cacheTransacao.ToString());
             var ultimaTransacaoValida = JsonSerializer.Deserialize<Transacao>(cacheTransacao!);
             if (ultimaTransacaoValida is not null)
             {
@@ -31,10 +36,14 @@ public class ConsumerService(ILogger<ConsumerService> logger) : IConsumerService
                     transacao.Coordenadas.Longitude
                 );
                 double velocidade = Math.Abs(distancia / tempo);
+                string stringVelocidade;
+                if (tempo == 0 && distancia != 0) stringVelocidade = "Infinita";
+                else if (tempo == 0 && distancia == 0) stringVelocidade = "0 Km/h";
+                else stringVelocidade = velocidade.ToString("0.0000") + " Km/h";
                 _logger.LogInformation("Tempo: {}\n      Distância: {}\n      Velocidade: {}"
-                    , tempo.ToString("0.000000") + "h", distancia.ToString("0.000000") + "Km", velocidade + "Km/h");
+                    , tempo.ToString("0.0000") + " h", distancia.ToString("0.0000") + " Km", stringVelocidade);
 
-                if (velocidade > 60.0) transacao.Fraude = true;
+                if (tempo < 0 || velocidade > 60.0) transacao.Fraude = true;
             }
         }
 

@@ -1,12 +1,12 @@
 ﻿namespace ADA.Consumer.Entities;
 
-public class Transacao(DateTime dataHora, string contaOrigem, string contaDestino, Canal canal, float valor, Coordenadas coordenadas)
+public class Transacao(DateTime dataHora, string contaOrigem, string contaDestino, Canal canal, double valor, Coordenadas coordenadas)
 {
     public DateTime DataHora { get; set; } = dataHora;
     public string ContaOrigem { get; set; } = contaOrigem;
     public string ContaDestino { get; set; } = contaDestino;
     public Canal Canal { get; set; } = canal;
-    public float Valor { get; set; } = valor;
+    public double Valor { get; set; } = valor;
     public Coordenadas Coordenadas { get; set; } = coordenadas;
     public bool Fraude = false;
 }

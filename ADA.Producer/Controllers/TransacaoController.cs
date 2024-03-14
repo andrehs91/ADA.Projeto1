@@ -43,9 +43,9 @@ public class TransacaoController(
 
     [HttpGet]
     [Route("consultar-relatorio")]
-    [ProducesResponseType(typeof(RespostaDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RespostaDTO), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RespostaDTO>> ConsultarRelatorio(string contaOrigem)
+    public async Task<ActionResult<string>> ConsultarRelatorio(string contaOrigem)
     {
         if (!FormatoContaValido(contaOrigem))
         {
@@ -53,7 +53,7 @@ public class TransacaoController(
         }
         try
         {
-            return Ok(RespostaDTO.Sucesso(await _transacaoService.ConsultarRelatorioAsync(contaOrigem)));
+            return Ok(await _transacaoService.ConsultarRelatorioAsync(contaOrigem));
         }
         catch (Exception e)
         {
@@ -64,9 +64,9 @@ public class TransacaoController(
 
     [HttpGet]
     [Route("listar-relatorior")]
-    [ProducesResponseType(typeof(RespostaDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RespostaDTO), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RespostaDTO>> ListarRelatorios(string contaOrigem)
+    public async Task<ActionResult<List<string>>> ListarRelatorios(string contaOrigem)
     {
         if (!FormatoContaValido(contaOrigem))
         {
@@ -76,7 +76,7 @@ public class TransacaoController(
         {
             var links = await _transacaoService.ListarRelatoriosAsync(contaOrigem);
             if (links is null) return Ok(RespostaDTO.Sucesso("Nenhum relatório foi encontrado para esta conta."));
-            return Ok(RespostaDTO.Sucesso(string.Join("\n", [.. links])));
+            return Ok(links);
         }
         catch (Exception e)
         {

@@ -18,7 +18,7 @@ A solução consiste em:
 
 1. Crie uma conta de armazenamento na Azure: https://learn.microsoft.com/pt-br/azure/storage/common/storage-account-create?tabs=azure-portal;
 2. Obtenha a *connection string* da conta criada: https://learn.microsoft.com/pt-br/azure/storage/common/storage-configure-connection-string;
-3. Informe a *connection string* no arquivo "appsettings.json" do projeto "ADA.Producer" como valor para a propriedade ConnectionStrings.AzureStorage;
+3. Informe a *connection string* no arquivo "appsettings.json" do projeto "ADA.Producer" como valor para a propriedade ConnectionStrings.AzureStorageAccount;
 4. Inicialize um container do RabbitMQ: ` docker run --name rabbitmq -d --rm -p 5672:5672 -p 15672:15672 rabbitmq:3.13-management `;
 5. Inicialize um container do Redis: ` docker run --name redis-stack -d -p 6379:6379 -p 8001:8001 redis/redis-stack:latest `;
 6. Considerando que o Visual Studio é a IDE utilizada, inicialize ambos os projetos (ADA.Consumer e ADA.Producer);

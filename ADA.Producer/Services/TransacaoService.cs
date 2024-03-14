@@ -53,9 +53,9 @@ public class TransacaoService : ITransacaoService
         if (transacoesInvalidas.Length == 0)
             return "Conta não possui registro de transações fraudulentas ou todos os registros já foram enviados para o relatório.";
 
-        string content = "{";
+        string content = "[";
         foreach (var transacao in transacoesInvalidas) content += transacao + ",";
-        content = content.Remove(content.Length - 1, 1) + "}";
+        content = content.Remove(content.Length - 1, 1) + "]";
         var memoryStream = new MemoryStream();
         var streamWriter = new StreamWriter(memoryStream);
         streamWriter.Write(content);
@@ -63,12 +63,14 @@ public class TransacaoService : ITransacaoService
         memoryStream.Position = 0;
 
         BlobContainerClient blobContainerClient = await BlobContainerAsync("ada");
-        string blobName = $"{DateTime.Now:yyyyMMddHHmmss}_{contaOrigem}.txt";
+        string blobName = $"{contaOrigem}_{DateTime.Now:yyyyMMddHHmmss}.txt";
         BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
         await blobClient.UploadAsync(memoryStream, true);
 
         streamWriter.Dispose();
         memoryStream.Dispose();
+
+        await _db.KeyDeleteAsync(chaveTransacaoInvalida);
 
         if (blobClient.CanGenerateSasUri)
         {
@@ -82,7 +84,7 @@ public class TransacaoService : ITransacaoService
             sasBuilder.SetPermissions(BlobContainerSasPermissions.Read);
             Uri sasURI = blobClient.GenerateSasUri(sasBuilder);
             string link = sasURI.AbsoluteUri;
-            _db.SetAdd(contaOrigem, link);
+            _db.SetAdd("relatorios." + contaOrigem, link);
             return link;
         }
         else
@@ -93,7 +95,7 @@ public class TransacaoService : ITransacaoService
 
     public async Task<List<string>?> ListarRelatoriosAsync(string contaOrigem)
     {
-        var cache = await _db.SetMembersAsync(contaOrigem);
+        var cache = await _db.SetMembersAsync("relatorios." + contaOrigem);
         if (cache.Length == 0) return null;
         List<string> links = cache.Select(c => c.ToString()).ToList();
         return links;
@@ -101,7 +103,7 @@ public class TransacaoService : ITransacaoService
 
     private async Task<BlobContainerClient> BlobContainerAsync(string containerName)
     {
-        string connectionString = _configuration["ConnectionStrings:AzureStorage"]
+        string connectionString = _configuration["ConnectionStrings:AzureStorageAccount"]
             ?? throw new Exception("Azure Storage não foi configurado.");
         BlobContainerClient blobContainerClient = new(connectionString, containerName);
         if (!await blobContainerClient.ExistsAsync())

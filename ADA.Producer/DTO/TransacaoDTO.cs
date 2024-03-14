@@ -21,8 +21,8 @@ public class TransacaoDTO
     public Canal Canal { get; set; }
 
     [Required(ErrorMessage = "Valor: Campo obrigatório.")]
-    [Range(0.01, float.MaxValue, ErrorMessage = "Valor: O valor deve ser maior do que 0.")]
-    public float Valor { get; set; }
+    [Range(0.01, double.MaxValue, ErrorMessage = "Valor: O valor deve ser maior do que 0.")]
+    public double Valor { get; set; }
 
     [Required(ErrorMessage = "Latitute: Campo obrigatório.")]
     [Range(-90, 90, ErrorMessage = "Latitute: Informe um valor entre -90º e 90º.")]
