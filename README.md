@@ -24,7 +24,8 @@ A solução consiste em:
 6. Considerando que o Visual Studio é a IDE utilizada, inicialize ambos os projetos (ADA.Consumer e ADA.Producer);
 7. Acesse a interface do Swagger e envie algumas transações; [^1]
 8. (Opcional) Acompanhe os registros armazenados em cache através do endereço localhost:8001;
-9. Consulte e/ou liste os relatórios de uma conta.
+9. (Opcional) Acompanhe o processamento das mensagens através dos logs do consumer (os cálculos realizados e o resultado da validação são enviados para o log);
+10. Consulte e/ou liste os relatórios de uma conta.
 
 > :warning: **Atenção:** Caso prefira utilizar o RabbitMQ e/ou o Redis de formas diferente, lembre-se de alterar as configurações dos arquivos "appsettings.json" de ambos os projetos, se for o caso.
 
